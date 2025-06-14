@@ -1,0 +1,18 @@
+========================================
+    Welcome to Memory Analysis Lab!
+========================================
+
+Your forensic workstation is ready! Here's what's available:
+
+MEMORY DUMP: /evidence/infected_system.raw
+VOLATILITY 3: Use 'vol' to run memory analysis commands
+QUICK REFERENCE: Run './quick_reference.sh' for command examples
+LAB STATUS: Run './lab_status.sh' to check setup
+
+GETTING STARTED:
+1. You're already in the /evidence directory
+2. Start with: vol -f infected_system.raw windows.info
+3. Follow the lab challenges step by step
+
+Happy hunting!
+========================================
