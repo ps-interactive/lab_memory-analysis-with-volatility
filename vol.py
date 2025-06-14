@@ -162,9 +162,13 @@ Offset	Proto	LocalAddr	LocalPort	ForeignAddr	ForeignPort	State	PID	Owner	Created
 
     def windows_dlllist(self, args):
         pid = None
-        for arg in args:
-            if arg.startswith('--pid'):
-                pid = arg.split('=')[1] if '=' in arg else args[args.index(arg) + 1]
+        for i, arg in enumerate(args):
+            if arg == '--pid' and i + 1 < len(args):
+                pid = args[i + 1]
+                break
+            elif arg.startswith('--pid='):
+                pid = arg.split('=')[1]
+                break
         
         if pid == "1888":
             return """Volatility 3 Framework 2.4.1
@@ -318,9 +322,13 @@ Offset	Name	Size
 
     def windows_handles(self, args):
         pid = None
-        for arg in args:
-            if arg.startswith('--pid'):
-                pid = arg.split('=')[1] if '=' in arg else args[args.index(arg) + 1]
+        for i, arg in enumerate(args):
+            if arg == '--pid' and i + 1 < len(args):
+                pid = args[i + 1]
+                break
+            elif arg.startswith('--pid='):
+                pid = arg.split('=')[1]
+                break
         
         if pid == "1888":
             return """Volatility 3 Framework 2.4.1
@@ -385,31 +393,72 @@ PID	Process	Block	Variable	Value
 2100	mimikatz.exe	0x9abc000	DUMP_PATH	C:\\Temp\\credentials.txt"""
 
     def run_command(self, command_args):
-        if len(command_args) < 3:
-            return "Usage: vol -f <memory_file> <plugin> [options]"
+        # Parse arguments properly
+        if len(command_args) == 0:
+            return self.show_help()
         
-        if command_args[1] != '-f':
-            return "Error: -f flag required"
+        # Handle --help
+        if '--help' in command_args or '-h' in command_args:
+            return self.show_help()
         
-        memory_file = command_args[2]
-        if len(command_args) < 4:
-            return "Error: Plugin name required"
+        # Look for -f flag
+        memory_file = None
+        plugin = None
+        plugin_args = []
         
-        plugin = command_args[3]
-        plugin_args = command_args[4:] if len(command_args) > 4 else []
+        i = 0
+        while i < len(command_args):
+            if command_args[i] == '-f' and i + 1 < len(command_args):
+                memory_file = command_args[i + 1]
+                i += 2
+            elif command_args[i].startswith('-f='):
+                memory_file = command_args[i][3:]
+                i += 1
+            elif not command_args[i].startswith('-') and plugin is None:
+                plugin = command_args[i]
+                plugin_args = command_args[i + 1:]
+                break
+            else:
+                i += 1
+        
+        if memory_file is None:
+            return "Error: -f flag required\nUsage: vol -f <memory_file> <plugin> [options]"
+        
+        if plugin is None:
+            return "Error: Plugin name required\nUsage: vol -f <memory_file> <plugin> [options]"
         
         if plugin in self.commands:
             return self.commands[plugin](plugin_args)
         else:
-            return f"Error: Unknown plugin '{plugin}'"
+            return f"Error: Unknown plugin '{plugin}'\nUse 'vol --help' to see available plugins"
+    
+    def show_help(self):
+        return """Volatility 3 Framework 2.4.1
+Usage: vol -f <memory_file> <plugin> [options]
+
+Available plugins:
+  windows.info                 System information
+  windows.pslist               List processes
+  windows.psscan               Scan for processes
+  windows.pstree               Process tree
+  windows.netstat              Network connections  
+  windows.netscan              Network connection scan
+  windows.dlllist              List DLLs
+  windows.malfind              Find malware
+  windows.hollowfind           Find hollow processes
+  windows.cmdline              Command line
+  windows.clipboard            Clipboard contents
+  windows.lsadump              LSA secrets
+  windows.iehistory            Internet history
+  windows.filescan             File scan
+  windows.handles              Process handles
+  windows.memmap               Memory map
+  windows.registry.hivelist    Registry hives
+  windows.envars               Environment variables
+  timeliner                    Timeline"""
 
 def main():
-    if len(sys.argv) < 2:
-        print("Volatility 3 Framework 2.4.1")
-        print("Usage: vol -f <memory_file> <plugin> [options]")
-        sys.exit(1)
-    
-    framework = VolatilityFramework(sys.argv[2] if len(sys.argv) > 2 else "")
+    framework = VolatilityFramework("")
     result = framework.run_command(sys.argv[1:])
     print(result)
 
